@@ -1,0 +1,468 @@
+{
+  "name": "Leads Automation Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "9667bf17-4a39-4ed2-9474-2cbc5632a055",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b846d24c-eb4f-48c4-bee1-9976b2edbc48",
+      "name": "Webhook",
+      "webhookId": "9667bf17-4a39-4ed2-9474-2cbc5632a055"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7cf82445-0494-4fea-ad2c-c312f9ce0572",
+              "name": "name",
+              "value": "={{ $json.body.form_response.answers[0].text + ' ' + $json.body.form_response.answers[1].text }}",
+              "type": "string"
+            },
+            {
+              "id": "98ea1595-6e16-48f4-854d-7202f2d83624",
+              "name": "email",
+              "value": "={{ $json.body.form_response.answers[3].email }}",
+              "type": "string"
+            },
+            {
+              "id": "03e785ae-9fca-4868-8c38-01e4f6a3f039",
+              "name": "company",
+              "value": "={{ $json.body.form_response.answers[4].text }}",
+              "type": "string"
+            },
+            {
+              "id": "64c1f7fa-3f43-4286-86cd-c31eba67b6a3",
+              "name": "message",
+              "value": "={{ $json.body.form_response.answers[5].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "43a9de36-da5a-49d6-ac9d-cf8f8f22cd8e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.agify.io?name={{ $json.name }}&apikey=YOUR_AGIFY_API_KEY_HERE",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "8ff0841b-5928-44b7-b26d-53efa097b4c0",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "models/gemini-3-flash-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=You are a sales qualifier. Based on the lead details: Name: {{ ('Edit Fields').item.json.name }}**, Company: **{{ ('Edit Fields').item.json.company }}, Message: {{ $('Edit Fields').item.json.message }}. Score the lead from 1 to 100. Return ONLY a JSON object like this: {\"score\": 85, \"reason\": \"Good company size\"}."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        608,
+        16
+      ],
+      "id": "5c1b82a7-6c23-4417-a220-7c9c775d0970",
+      "name": "Message a model"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the text response from Gemini\nconst aiText = $input.first().json.content.parts[0].text;\n// Parse it into a real JSON object\nconst parsedAI = JSON.parse(aiText);\n\n// Combine original lead data with the AI score\nconst leadData = $('Edit Fields').item.json;\n\nreturn {\n  json: {\n    ...leadData,\n    score: parsedAI.score,\n    reason: parsedAI.reason\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        16
+      ],
+      "id": "07234f3b-0599-4581-89d8-b552edbb8287",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appNaiEvDpbPkg1Nk",
+          "mode": "list",
+          "cachedResultName": "Leads",
+          "cachedResultUrl": "https://airtable.com/appNaiEvDpbPkg1Nk"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblCqehRe0LixKDOm",
+          "mode": "list",
+          "cachedResultName": "Inbound Leads",
+          "cachedResultUrl": "https://airtable.com/appNaiEvDpbPkg1Nk/tblCqehRe0LixKDOm"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Score": "={{ $json.score }}",
+            "Name": "={{ $json.name }}",
+            "Email": "={{ $json.email }}",
+            "Company": "={{ $json.company }}",
+            "Message": "={{ $json.message }}",
+            "Reason": "={{ $json.reason }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Score",
+              "displayName": "Score",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        1168,
+        16
+      ],
+      "id": "9e50e41a-950d-4342-a60e-6c472fc8b658",
+      "name": "Create a record"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Code in JavaScript').item.json.email }}",
+        "subject": "=Welcome to the team, {{ $('Code in JavaScript').item.json.name }}!",
+        "message": "=Hi {{ $json.fields.Name }},<br><br> Thanks for reaching out! We received your message about \"{{ $json.fields.Message }}\" and our team is reviewing it.   Best,  The Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        16
+      ],
+      "id": "e23a0696-1491-433c-bb66-59eb9161197d",
+      "name": "Send a message",
+      "webhookId": "ea3dc9a0-71f9-43b9-acca-c5571077931a"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1584,
+        16
+      ],
+      "id": "386de7b3-2bb9-4c06-9c2c-7d62028f9676",
+      "name": "Wait",
+      "webhookId": "e7eaa4c3-5947-44d7-91fb-bbeef5f1652d"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Code in JavaScript').item.json.email }}",
+        "subject": "Following up on your inquiry",
+        "message": "=Hi {{ $('Code in JavaScript').item.json.name }},<br><br>  I'm just following up on my previous email. I wanted to make sure you received it and see if you had any questions about how we can help {{ $('Code in JavaScript').item.json.company }}.<br><br>  Whenever you have a moment, just reply to this email and let me know.<br><br>  Best regards,<br> The Team",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2288,
+        64
+      ],
+      "id": "0083c8ea-23df-43e0-aaf1-c1a20d3cca10",
+      "name": "Send a message1",
+      "webhookId": "4a152200-a6ef-4882-929a-4c06c86bca3d"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e7621434-4580-4e58-80a9-90203ee19c27",
+              "leftValue": "={{ $json.messages.length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2000,
+        16
+      ],
+      "id": "db481d84-c515-4993-a713-0da87a621cf8",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "thread",
+        "operation": "get",
+        "threadId": "={{ $json.threadId }}",
+        "options": {
+          "returnOnlyMessages": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        16
+      ],
+      "id": "7b7e4118-ac0c-4fa8-9685-d9fc25b5399c",
+      "name": "Get a thread",
+      "webhookId": "93b0e20f-e50d-4271-88b1-7b42f385e10b"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2288,
+        -96
+      ],
+      "id": "e01fc7f2-ee31-4b9e-aa14-7de05250fea8",
+      "name": "No Operation, do nothing"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Get a thread",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a thread": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ae59048f-6bd0-492d-9f5f-18ffe1c2ba66",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "99a69cc7521b64ff361ff899752030bc4bba0e300e349fca440650f642a6203d"
+  },
+  "nodeGroups": [],
+  "id": "77y9vBXjRzX0iKtI",
+  "tags": []
+}
